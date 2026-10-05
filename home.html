@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your account — Ledger </title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,700;1,300&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="wrap">
+      <a href="home.html" class="brand">Ledger  </a>
+      <div class="app-header-right">
+        <span>Hello, <strong id="userName">there</strong></span>
+        <button id="logoutBtn" class="btn btn-danger">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div class="wrap">
+
+      <div class="balance-card">
+        <p class="balance-label">Current balance</p>
+        <p class="balance-amount" id="balanceAmount">₹0.00</p>
+      </div>
+
+      <div class="txn-row-grid">
+
+        <div class="txn-panel">
+          <h2>Deposit</h2>
+          <p class="txn-panel-sub">Add money to your balance.</p>
+          <form id="depositForm" novalidate>
+            <div class="field">
+              <label for="depositAmount">Amount (₹)</label>
+              <input type="number" id="depositAmount" min="0.01" step="0.01" placeholder="0.00">
+            </div>
+            <div id="depositError" class="form-error" role="alert"></div>
+            <button type="submit" class="btn btn-solid btn-block">Deposit</button>
+          </form>
+        </div>
+
+        <div class="txn-panel">
+          <h2>Withdraw</h2>
+          <p class="txn-panel-sub">Take money out of your balance.</p>
+          <form id="withdrawForm" novalidate>
+            <div class="field">
+              <label for="withdrawAmount">Amount (₹)</label>
+              <input type="number" id="withdrawAmount" min="0.01" step="0.01" placeholder="0.00">
+            </div>
+            <div id="withdrawError" class="form-error" role="alert"></div>
+            <button type="submit" class="btn btn-ghost btn-block">Withdraw</button>
+          </form>
+        </div>
+
+      </div>
+
+      <div class="ledger-table-wrap">
+        <h2>Your ledger</h2>
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Balance after</th>
+            </tr>
+          </thead>
+          <tbody id="txnBody">
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    
+    const sessionEmail = lvGetSession();
+    let currentUser = sessionEmail ? lvFindUser(sessionEmail) : null;
+
+    if (!currentUser) {
+      window.location.href = 'login.html';
+    }
+
+    
+    const userNameEl = document.getElementById('userName');
+    const balanceAmountEl = document.getElementById('balanceAmount');
+    const txnBody = document.getElementById('txnBody');
+
+    const depositForm = document.getElementById('depositForm');
+    const depositAmountInput = document.getElementById('depositAmount');
+    const depositError = document.getElementById('depositError');
+
+    const withdrawForm = document.getElementById('withdrawForm');
+    const withdrawAmountInput = document.getElementById('withdrawAmount');
+    const withdrawError = document.getElementById('withdrawError');
+
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    
+    function refreshUI() {
+      userNameEl.textContent = currentUser.name;
+      balanceAmountEl.textContent = lvFormatMoney(currentUser.balance);
+
+      txnBody.innerHTML = '';
+
+      if (currentUser.transactions.length === 0) {
+        txnBody.innerHTML = '<tr class="empty-row"><td colspan="4">No transactions yet — make your first deposit above.</td></tr>';
+        return;
+      }
+
+      const rows = [...currentUser.transactions].reverse();
+
+      rows.forEach(function (txn) {
+        const tr = document.createElement('tr');
+        const isDeposit = txn.type === 'deposit';
+
+        tr.innerHTML = `
+          <td>${txn.date}</td>
+          <td class="txn-type ${isDeposit ? 'txn-deposit' : 'txn-withdraw'}">${isDeposit ? 'Deposit' : 'Withdrawal'}</td>
+          <td class="txn-amount">${isDeposit ? '+' : '−'} ${lvFormatMoney(txn.amount)}</td>
+          <td>${lvFormatMoney(txn.balanceAfter)}</td>
+        `;
+        txnBody.appendChild(tr);
+      });
+    }
+
+    if (currentUser) {
+      refreshUI();
+    }
+
+   
+    depositForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      lvClearError(depositError);
+
+      const amount = parseFloat(depositAmountInput.value);
+
+      if (isNaN(amount) || amount <= 0) {
+        lvShowError(depositError, 'Enter an amount greater than zero.');
+        return;
+      }
+
+      currentUser.balance += amount;
+      currentUser.transactions.push({
+        type: 'deposit',
+        amount: amount,
+        date: new Date().toLocaleDateString('en-IN'),
+        balanceAfter: currentUser.balance
+      });
+
+      lvUpdateUser(currentUser);
+      refreshUI();
+      depositForm.reset();
+    });
+
+    withdrawForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      lvClearError(withdrawError);
+
+      const amount = parseFloat(withdrawAmountInput.value);
+
+      if (isNaN(amount) || amount <= 0) {
+        lvShowError(withdrawError, 'Enter an amount greater than zero.');
+        return;
+      }
+      if (amount > currentUser.balance) {
+        lvShowError(withdrawError, 'Insufficient balance for this withdrawal.');
+        return;
+      }
+
+      currentUser.balance -= amount;
+      currentUser.transactions.push({
+        type: 'withdraw',
+        amount: amount,
+        date: new Date().toLocaleDateString('en-IN'),
+        balanceAfter: currentUser.balance
+      });
+
+      lvUpdateUser(currentUser);
+      refreshUI();
+      withdrawForm.reset();
+    });
+
+   
+    logoutBtn.addEventListener('click', function () {
+      lvClearSession();
+      window.location.href = 'index.html';
+    });
+  </script>
+
+</body>
+</html>

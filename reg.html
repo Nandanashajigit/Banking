@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create your account — Ledger Banking</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,700;1,300&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="auth-shell">
+
+    <div class="auth-panel-brand">
+      <a href="index.html" class="brand">Ledger <span></span> Banking</a>
+      <blockquote class="auth-quote">
+        "Keep a plain record, and your money never surprises you."
+        <div class="auth-quote-attr">— the first rule of the ledger</div>
+      </blockquote>
+      <p class="demo-notice"></p>
+    </div>
+
+    <div class="auth-panel-form">
+      <div class="auth-form-box">
+        <h1>Create your account</h1>
+        <p class="auth-form-sub">It takes less than a minute.</p>
+
+        <form id="registerForm" novalidate>
+
+          <div class="field">
+            <label for="name">Full name</label>
+            <input type="text" id="name" name="name" autocomplete="name" ">
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" autocomplete="email" ">
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" autocomplete="new-password" placeholder="At least 6 characters">
+          </div>
+
+          <div class="field">
+            <label for="confirmPassword">Confirm password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password" placeholder="Re-type your password">
+          </div>
+
+          <div id="registerError" class="form-error" role="alert"></div>
+
+          <button type="submit" class="btn btn-solid btn-block">Create account</button>
+        </form>
+
+        <p class="form-note">Already have an account? <a href="login.html">Log in</a></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    const registerForm = document.getElementById('registerForm');
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const registerError = document.getElementById('registerError');
+
+    registerForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      lvClearError(registerError);
+
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const confirmPassword = confirmPasswordInput.value;
+
+      if (!name || !email || !password || !confirmPassword) {
+        lvShowError(registerError, 'Please fill in every field.');
+        return;
+      }
+      if (password.length < 6) {
+        lvShowError(registerError, 'Password must be at least 6 characters.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        lvShowError(registerError, 'Passwords do not match.');
+        return;
+      }
+      if (lvFindUser(email)) {
+        lvShowError(registerError, 'An account with this email already exists.');
+        return;
+      }
+
+      lvRegisterUser(name, email, password);
+
+      sessionStorage.setItem('lv_flash', 'Account created — please log in.');
+
+      window.location.href = 'login.html';
+    });
+  </script>
+
+</body>
+</html>
